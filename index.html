@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lua Animation Merger</title>
+  <style>
+    body { font-family: Arial; padding: 30px; }
+    .drop-area {
+      width: 100%;
+      padding: 40px;
+      border: 3px dashed #888;
+      border-radius: 10px;
+      text-align: center;
+      color: #666;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+    .drop-area.highlight {
+      border-color: #4caf50;
+      color: #4caf50;
+    }
+    .hidden { display: none; }
+
+    /* Progress bar */
+    #progressContainer {
+      width: 100%;
+      background: #ddd;
+      height: 20px;
+      margin-top: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+      display: none;
+    }
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: #4caf50;
+      transition: width 0.1s ease;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Lua Animation Merger</h1>
+<p>Upload file <b>.lua</b>. Duplikasi frame otomatis dihapus.</p>
+
+<div id="dropArea" class="drop-area">
+  Seret & letakkan file .lua di sini<br><br>
+  atau klik untuk memilih
+</div>
+
+<input type="file" id="fileInput" class="hidden" multiple accept=".lua">
+
+<!-- Progress Bar -->
+<div id="progressContainer">
+  <div id="progressBar"></div>
+</div>
+
+<button onclick="merge()">Merge</button>
+
+<pre id="status"></pre>
+
+<script>
+const dropArea = document.getElementById("dropArea");
+const fileInput = document.getElementById("fileInput");
+let droppedFiles = [];
+
+// OPEN FILE DIALOG
+dropArea.addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", (e) => {
+  droppedFiles = [...fileInput.files];
+  dropArea.textContent = droppedFiles.length + " file dipilih";
+});
+
+// Prevent defaults
+["dragenter", "dragover", "dragleave", "drop"].forEach(evt => {
+  dropArea.addEventListener(evt, e => e.preventDefault());
+});
+
+// Highlight events
+dropArea.addEventListener("dragenter", () => dropArea.classList.add("highlight"));
+dropArea.addEventListener("dragleave", () => dropArea.classList.remove("highlight"));
+
+// Drop files
+dropArea.addEventListener("drop", (e) => {
+  dropArea.classList.remove("highlight");
+  droppedFiles = [...e.dataTransfer.files];
+  dropArea.textContent = droppedFiles.length + " file di-drop";
+});
+
+async function merge() {
+    if (droppedFiles.length === 0) {
+        alert("Pilih atau drop file terlebih dahulu!");
+        return;
+    }
+
+    const form = new FormData();
+    droppedFiles.forEach(f => form.append("files", f));
+
+    const status = document.getElementById("status");
+    status.innerText = "Uploading...";
+
+    // PROGRESS BAR
+    const container = document.getElementById("progressContainer");
+    const bar = document.getElementById("progressBar");
+    container.style.display = "block";
+    bar.style.width = "0%";
+
+    const xhr = new XMLHttpRequest();
+
+    // UPDATE PROGRESS BAR
+    xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+            let percent = Math.round((e.loaded / e.total) * 100);
+            bar.style.width = percent + "%";
+        }
+    };
+
+    xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+
+            const data = JSON.parse(xhr.responseText);
+
+            // DOWNLOAD FILE MERGED
+            const blob = new Blob([data.mergedLua], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "merged.lua";
+            a.click();
+
+            // TAMPILKAN STATISTIK
+            status.innerHTML =
+                "Selesai!\n\n" +
+                "Total frame asli: " + data.initialFrames + "\n" +
+                "Frame duplikat dihapus: " + data.duplicatesRemoved + "\n" +
+                "Frame final: " + data.finalFrames;
+
+            bar.style.width = "100%";
+        }
+    };
+
+    xhr.open("POST", "/api/merge.lua");
+    xhr.send(form);
+}
+</script>
+
+</body>
+</html>
