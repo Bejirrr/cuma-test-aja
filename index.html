@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Merge Tool - Checklist Method</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .file-card {
+            background: white;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+        }
+
+        .file-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .remove-file {
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .remove-file:hover {
+            background: #dc2626;
+        }
+
+        .file-stats {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .upload-box:hover {
+            border-color: #764ba2;
+            background: #f0f1ff;
+            transform: translateY(-5px);
+        }
+
+        .upload-box.has-file {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .upload-box input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .preview-section {
+            margin-bottom: 30px;
+        }
+
+        .preview-box {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f9fafb;
+            margin-bottom: 20px;
+        }
+
+        .preview-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            position: sticky;
+            top: 0;
+            background: #f9fafb;
+            padding-bottom: 10px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+
+        .checklist-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checklist-item label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .key-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .key-value {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 3px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn-merge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-merge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-reset:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .result-section {
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            background: #f8f9ff;
+        }
+
+        .result-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        #result {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8ebff 100%);
+            border-radius: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+
+        @media (max-width: 768px) {
+            .upload-section, .preview-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔀 JSON Merge Tool</h1>
+        <p class="subtitle">Merge file JSON dengan metode checklist - Pilih data yang ingin digabungkan</p>
+
+        <div id="alert"></div>
+
+        <div class="upload-section">
+            <div class="upload-box" onclick="document.getElementById('fileInput').click()" style="grid-column: 1 / -1;">
+                <div class="upload-icon">📁</div>
+                <h3>Upload Multiple File JSON</h3>
+                <p>Klik untuk upload banyak file JSON sekaligus</p>
+                <input type="file" id="fileInput" accept=".json" multiple onchange="handleFiles(this)">
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+        </div>
+
+        <div id="fileList" style="margin-bottom: 20px;"></div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalKeys">0</div>
+                <div class="stat-label">Total Keys</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="selectedKeys">0</div>
+                <div class="stat-label">Keys Dipilih</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="mergedSize">0</div>
+                <div class="stat-label">Ukuran Hasil (KB)</div>
+            </div>
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <div id="checklistContainer"></div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-merge" id="mergeBtn" onclick="mergeFiles()" disabled>
+                🔀 Merge File JSON
+            </button>
+            <button class="btn-download" id="downloadBtn" onclick="downloadResult()" disabled>
+                💾 Download Hasil
+            </button>
+            <button class="btn-reset" onclick="resetAll()">
+                🔄 Reset Semua
+            </button>
+        </div>
+
+        <div class="result-section" id="resultSection" style="display: none;">
+            <h3>📊 Hasil Merge JSON:</h3>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let filesData = [];
+        let mergedData = null;
+
+        function showAlert(message, type) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function handleFiles(input) {
+            const files = Array.from(input.files);
+            
+            if (files.length === 0) return;
+
+            let loadedCount = 0;
+            
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        filesData.push({
+                            name: file.name,
+                            data: data,
+                            selectedKeys: new Set(),
+                            id: Date.now() + index
+                        });
+
+                        loadedCount++;
+                        
+                        if (loadedCount === files.length) {
+                            renderFileList();
+                            renderChecklists();
+                            document.getElementById('previewSection').style.display = 'block';
+                            document.getElementById('mergeBtn').disabled = false;
+                            updateStats();
+                            showAlert(`${files.length} file berhasil dimuat!`, 'success');
+                        }
+                    } catch (error) {
+                        showAlert(`Error: ${file.name} bukan JSON yang valid!`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function renderFileList() {
+            const fileListDiv = document.getElementById('fileList');
+            
+            if (filesData.length === 0) {
+                fileListDiv.innerHTML = '';
+                return;
+            }
+
+            fileListDiv.innerHTML = '<div class="file-list"></div>';
+            const fileListContainer = fileListDiv.querySelector('.file-list');
+
+            filesData.forEach((fileData, index) => {
+                const card = document.createElement('div');
+                card.className = 'file-card';
+                
+                const keyCount = Object.keys(fileData.data).length;
+                
+                card.innerHTML = `
+                    <div class="file-card-header">
+                        <div class="file-name">📄 ${fileData.name}</div>
+                        <button class="remove-file" onclick="removeFile(${index})" title="Hapus file">×</button>
+                    </div>
+                    <div class="file-stats">${keyCount} keys</div>
+                `;
+                
+                fileListContainer.appendChild(card);
+            });
+        }
+
+        function removeFile(index) {
+            filesData.splice(index, 1);
+            renderFileList();
+            renderChecklists();
+            updateStats();
+            
+            if (filesData.length === 0) {
+                document.getElementById('previewSection').style.display = 'none';
+                document.getElementById('mergeBtn').disabled = true;
+                document.getElementById('fileInput').value = '';
+            }
+            
+            showAlert('File berhasil dihapus!', 'success');
+        }
+
+        function renderChecklists() {
+            const container = document.getElementById('checklistContainer');
+            container.innerHTML = '';
+
+            filesData.forEach((fileData, fileIndex) => {
+                const previewBox = document.createElement('div');
+                previewBox.className = 'preview-box';
+                
+                const header = document.createElement('h3');
+                header.textContent = `📋 ${fileData.name} - Pilih Data`;
+                previewBox.appendChild(header);
+
+                const checklistDiv = document.createElement('div');
+                checklistDiv.id = `checklist-${fileIndex}`;
+                previewBox.appendChild(checklistDiv);
+
+                container.appendChild(previewBox);
+
+                createChecklist(fileIndex, fileData.data, fileData.selectedKeys, checklistDiv);
+            });
+        }
+
+        function createChecklist(fileIndex, data, selectedSet, container) {
+            container.innerHTML = '';
+
+            function addItems(obj, prefix = '') {
+                const entries = Object.entries(obj);
+                entries.sort((a, b) => a[0].localeCompare(b[0]));
+
+                entries.forEach(([key, value]) => {
+                    const fullKey = prefix ? `${prefix}.${key}` : key;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'checklist-item';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `check${fileIndex}_${fullKey.replace(/\./g, '_')}`;
+                    checkbox.checked = true;
+                    selectedSet.add(fullKey);
+
+                    checkbox.onchange = function() {
+                        if (this.checked) {
+                            selectedSet.add(fullKey);
+                        } else {
+                            selectedSet.delete(fullKey);
+                        }
+                        updateStats();
+                    };
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    
+                    const keyName = document.createElement('div');
+                    keyName.className = 'key-name';
+                    keyName.textContent = key;
+
+                    const keyValue = document.createElement('div');
+                    keyValue.className = 'key-value';
+                    const valueStr = typeof value === 'object' ? JSON.stringify(value).substring(0, 50) + '...' : String(value).substring(0, 50);
+                    keyValue.textContent = valueStr;
+
+                    label.appendChild(keyName);
+                    label.appendChild(keyValue);
+
+                    itemDiv.appendChild(checkbox);
+                    itemDiv.appendChild(label);
+                    container.appendChild(itemDiv);
+
+                    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                        addItems(value, fullKey);
+                    }
+                });
+            }
+
+            selectedSet.clear();
+            addItems(data);
+        }
+
+        function updateStats() {
+            let totalKeys = 0;
+            filesData.forEach(fileData => {
+                totalKeys += fileData.selectedKeys.size;
+            });
+            
+            document.getElementById('totalKeys').textContent = totalKeys;
+            document.getElementById('selectedKeys').textContent = totalKeys;
+        }
+
+        function getSelectedData(data, selectedKeys) {
+            const result = {};
+
+            selectedKeys.forEach(key => {
+                const keys = key.split('.');
+                let sourceObj = data;
+                let targetObj = result;
+
+                for (let i = 0; i < keys.length - 1; i++) {
+                    if (sourceObj && sourceObj[keys[i]] !== undefined) {
+                        sourceObj = sourceObj[keys[i]];
+                        if (!targetObj[keys[i]]) {
+                            targetObj[keys[i]] = {};
+                        }
+                        targetObj = targetObj[keys[i]];
+                    }
+                }
+
+                const lastKey = keys[keys.length - 1];
+                if (sourceObj && sourceObj[lastKey] !== undefined) {
+                    targetObj[lastKey] = sourceObj[lastKey];
+                }
+            });
+
+            return result;
+        }
+
+        function mergeFiles() {
+            if (filesData.length === 0) {
+                showAlert('Mohon upload file JSON terlebih dahulu!', 'error');
+                return;
+            }
+
+            mergedData = {};
+
+            filesData.forEach((fileData, index) => {
+                const selectedData = getSelectedData(fileData.data, fileData.selectedKeys);
+                mergedData = { ...mergedData, ...selectedData };
+            });
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = JSON.stringify(mergedData, null, 2);
+
+            document.getElementById('resultSection').style.display = 'block';
+            document.getElementById('downloadBtn').disabled = false;
+
+            const sizeKB = (JSON.stringify(mergedData).length / 1024).toFixed(2);
+            document.getElementById('mergedSize').textContent = sizeKB;
+
+            showAlert(`${filesData.length} file berhasil di-merge!`, 'success');
+
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function downloadResult() {
+            if (!mergedData) {
+                showAlert('Belum ada data untuk didownload!', 'error');
+                return;
+            }
+
+            const dataStr = JSON.stringify(mergedData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `merged_${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showAlert('File berhasil didownload!', 'success');
+        }
+
+        function resetAll() {
+            filesData = [];
+            mergedData = null;
+
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').textContent = '';
+            document.getElementById('fileList').innerHTML = '';
+            document.getElementById('checklistContainer').innerHTML = '';
+            document.getElementById('result').textContent = '';
+
+            document.getElementById('previewSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('mergeBtn').disabled = true;
+            document.getElementById('downloadBtn').disabled = true;
+
+            document.getElementById('totalKeys').textContent = '0';
+            document.getElementById('selectedKeys').textContent = '0';
+            document.getElementById('mergedSize').textContent = '0';
+
+            showAlert('Semua data telah direset!', 'success');
+        }
+    </script>
+</body>
+</html>
