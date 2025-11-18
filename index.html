@@ -297,6 +297,88 @@
             margin-top: 5px;
         }
 
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .toggle-all {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .toggle-all:hover {
+            background: #764ba2;
+        }
+
+        .lazy-load-btn {
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .lazy-load-btn:hover {
+            background: #764ba2;
+        }
+
         .alert {
             padding: 15px;
             border-radius: 10px;
@@ -341,6 +423,17 @@
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h3 id="loadingText">Memproses file...</h3>
+            <p id="loadingDetail">Mohon tunggu</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <h1>🔀 JSON Merge Tool</h1>
         <p class="subtitle">Merge file JSON dengan metode checklist - Pilih data yang ingin digabungkan</p>
@@ -399,6 +492,24 @@
     <script>
         let filesData = [];
         let mergedData = null;
+        const CHUNK_SIZE = 50; // Items per chunk untuk lazy loading
+        const MAX_INITIAL_ITEMS = 100; // Max items di render awal
+
+        function showLoading(text = 'Memproses file...', detail = 'Mohon tunggu') {
+            const overlay = document.getElementById('loadingOverlay');
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingDetail').textContent = detail;
+            overlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('progressFill').style.width = '0%';
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
 
         function showAlert(message, type) {
             const alertDiv = document.getElementById('alert');
@@ -415,37 +526,69 @@
             
             if (files.length === 0) return;
 
+            showLoading('Memuat file...', `0 / ${files.length} file`);
+            
             let loadedCount = 0;
             
+            // Process files with delay to prevent browser freeze
             files.forEach((file, index) => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        
-                        filesData.push({
-                            name: file.name,
-                            data: data,
-                            selectedKeys: new Set(),
-                            id: Date.now() + index
-                        });
+                setTimeout(() => {
+                    const reader = new FileReader();
+                    reader.onload = async function(e) {
+                        try {
+                            updateProgress((index / files.length) * 50);
+                            document.getElementById('loadingDetail').textContent = `Parsing ${file.name}...`;
+                            
+                            // Parse JSON in chunks using Web Worker simulation
+                            await new Promise(resolve => setTimeout(resolve, 10)); // Allow UI update
+                            
+                            const data = JSON.parse(e.target.result);
+                            
+                            filesData.push({
+                                name: file.name,
+                                data: data,
+                                selectedKeys: new Set(),
+                                id: Date.now() + index,
+                                itemCount: countKeys(data),
+                                renderedItems: 0
+                            });
 
-                        loadedCount++;
-                        
-                        if (loadedCount === files.length) {
-                            renderFileList();
-                            renderChecklists();
-                            document.getElementById('previewSection').style.display = 'block';
-                            document.getElementById('mergeBtn').disabled = false;
-                            updateStats();
-                            showAlert(`${files.length} file berhasil dimuat!`, 'success');
+                            loadedCount++;
+                            updateProgress(50 + (loadedCount / files.length) * 50);
+                            
+                            if (loadedCount === files.length) {
+                                renderFileList();
+                                await renderChecklists();
+                                document.getElementById('previewSection').style.display = 'block';
+                                document.getElementById('mergeBtn').disabled = false;
+                                updateStats();
+                                hideLoading();
+                                showAlert(`${files.length} file berhasil dimuat!`, 'success');
+                            }
+                        } catch (error) {
+                            hideLoading();
+                            showAlert(`Error: ${file.name} bukan JSON yang valid!`, 'error');
                         }
-                    } catch (error) {
-                        showAlert(`Error: ${file.name} bukan JSON yang valid!`, 'error');
-                    }
-                };
-                reader.readAsText(file);
+                    };
+                    
+                    reader.onerror = function() {
+                        hideLoading();
+                        showAlert(`Error membaca file: ${file.name}`, 'error');
+                    };
+                    
+                    reader.readAsText(file);
+                }, index * 100); // Stagger file reading
             });
+        }
+
+        function countKeys(obj, count = 0) {
+            for (let key in obj) {
+                count++;
+                if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
+                    count = countKeys(obj[key], count);
+                }
+            }
+            return count;
         }
 
         function renderFileList() {
